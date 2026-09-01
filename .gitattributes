@@ -1,0 +1,4 @@
+# Authored on Windows, read on Linux and macOS. Force LF so a clone is identical
+# everywhere — the same trap that once broke deploy.sh with a bash\r error.
+* text=auto eol=lf
+*.md text eol=lf

@@ -1,0 +1,14 @@
+# Nothing generated lives here — these guards are for accidents.
+.probe
+*.tmp
+*.bak
+.DS_Store
+Thumbs.db
+
+# Never, under any circumstances.
+.env
+.env.*
+*.pem
+*.key
+id_rsa*
+*credentials*
