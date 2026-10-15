@@ -5,6 +5,36 @@ description: Operate the shared mentis-demo VM and the other production hosts sa
 
 # Box operations
 
+## 2026-10-15 update (read first)
+
+**The GCP demo box `lms` (34.131.254.234) is decommissioned and unreachable.** Every
+section below that describes it, its four-tenant container map, its port table, the
+`demo-db` Cloud SQL instance and the 443 firewall note is historical. The only server is
+`editone-prod` (`ssh editone-prod`, root@200.141.15.77, Hostinger `srv1888767`), which
+the owner treats as the demo environment. It is still shared: tenant `ajeet` (uid 1000)
+runs Aira Studio, FlyBrain, redroid, guacamole, omniroute, zetta2 and friends from
+`/home/ajeet`, `/opt/{zetta2,zetta2v2,redroid,hopper,jadx}` and their own systemd
+units. Never touch those.
+
+Facts that bite on this box:
+
+- Host nginx owns 80/443 and every `*.tryemerge.in` vhost; certbot HTTP-01 through it
+  works and `/etc/letsencrypt/renewal-hooks/deploy/nginx-reload.sh` reloads nginx.
+- **Docker-published ports bypass UFW.** Publish on `127.0.0.1:` only; a `0.0.0.0`
+  publish is on the internet.
+- `/etc/cron.d/docker-image-prune` deletes any unused image older than 24 h unless it
+  carries `label keep=true`; `:rollback` tags that are not relabelled expire.
+- Every stack lives under `/opt/emerge/<name>` with a `src/` tree, an on-box `.env`
+  (mode 600) and a `DEPLOYED_COMMIT` file; `/opt/papersetter` and `/opt/editone`
+  (CleverClass, Docker Swarm stack `editone`) are the exceptions.
+- Deploys serialise on `mkdir /root/deploy.lock`; Jenkins takes and releases it too.
+- Jenkins: https://devops.tryemerge.in (controller container on 127.0.0.1:8082, host
+  agent `jenkins-agent.service` runs every deploy script as root). Logs:
+  https://track.tryemerge.in (Loki/Alloy/Grafana, 14-day retention, ports 8092-8094).
+  Both sign in through CAS. Config and procedures: `Harbour-Emerge/emerge-devops`.
+- `emerge-db` (Postgres 18) is on 127.0.0.1:5432 and :8072 plus the bridge address;
+  CAS, core, survey, marketplace and mail all use it.
+
 Rules for touching remote hosts in this ecosystem. Read this **before** the first
 SSH command, not after something breaks.
 
@@ -57,19 +87,31 @@ before planning anything that needs 443 rather than trusting either document.
 | `cc-{web,api,proxy}` | CleverClass | yes, if the task is CleverClass |
 | `paper-checker-paper-checker-1` | paper-checker | no |
 | `emerge-forms-{backend,frontend,caddy,...}` | emerge-forms | yes |
+| `cas`, `cas-preview`, `cas-preview-db` | CAS | yes, if the task is CAS |
+| `internal-admin-console`, `internal-admin-console-preview` | Internal Admin Console | yes, if the task is the console |
+| `cas-admin`, `cas-admin-preview` | **DEPRECATED** — replaced by the console above | remove on cutover, do not redeploy |
 
 Confirm before assuming: `docker ps --format '{{.Names}}\t{{.Status}}\t{{.Ports}}'`
 
 ## Port allocation
 
 Public: `80`, `8050`, `8051`, `8055`, `8070`, `8080`, `9000`
-Loopback only: `8060`, `8062`, `8063`, `8065`, `8067`, `8068`, `8069`, `18000`
+Loopback only: `8060`, `8062`, `8063`, `8065`, `8067`, `8068`, `8069`, `8071`, `8073`, `8074`, `8075`, `18000`
+
+The four in the 8071-8075 block are published on the **docker bridge as well as
+loopback**, because the shared nginx reaches them at `172.17.0.1`. A port
+published only to loopback is not reachable at the bridge address and presents
+as a 502 from nginx against a perfectly healthy container.
 
 | Port | Owner |
 |---|---|
 | `80` | another tenant's nginx — **cannot be claimed** |
 | `443` | **not currently reachable** — see the firewall note above. Reserved for emerge-forms if and when HTTPS is turned on |
 | `8070` | emerge-forms Caddy, the current public port (`PUBLIC_PORT`) |
+| `8071` | CAS production, behind `auth.tryemerge.in` |
+| `8073` | Internal Admin Console, behind `admin.auth.tryemerge.in` |
+| `8074` | CAS preview, behind `auth-demo.tryemerge.in` |
+| `8075` | Internal Admin Console demo, behind `admin.auth-demo.tryemerge.in` |
 | `8067` / `8068` / `8069` | emerge-forms backend / frontend / local Postgres, loopback |
 | `8050` / `8051` | CleverClass storefront / admin (`cc-proxy`) |
 | `8055` | `exam-studio-nginx` |

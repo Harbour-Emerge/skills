@@ -5,6 +5,20 @@ description: Ship changes to the Emerge estate — build, migrate, roll, smoke-t
 
 # Deploying the Emerge estate
 
+## 2026-10-15 update (read first)
+
+Deploys are triggered by Jenkins (https://devops.tryemerge.in), not GitHub Actions; the
+"three generations" and the Actions `deploy.yml` descriptions below are historical. The
+mechanics on the box did not change: each repo still ships `deploy/deploy.sh`, Jenkins
+syncs the commit into `/opt/emerge/<name>/src` (git reset for CAS, retrieval, forms and
+the console; tar overlay with `stale-<sha>/` handling elsewhere), writes
+`DEPLOYED_COMMIT`, runs the script as root under `/root/deploy.lock`, polls the health
+URL, and relabels `:rollback` with `keep=true` so the nightly prune keeps it. Manual
+ref/preview deploys for CAS and the console live under Emerge → Manual deploys in
+Jenkins. Exam Studio's bundle was rewritten for the VPS (no retrieval service, no sudo).
+Adding a repo: Jenkinsfile in the repo, an entry in `casc/repos.yaml` of emerge-devops,
+restart the controller; the GitHub App `emerge-devops-ci` delivers the webhooks.
+
 `Survey-Forms/deploy/` is the reference implementation. Anything new should look
 like it. Read `box-ops` before running a command on a remote host, and
 `emerge-context` if you are unsure which repo deploys where.

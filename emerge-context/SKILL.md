@@ -5,6 +5,22 @@ description: Orientation for the Emerge / Exam Studio / CleverClass estate on D:
 
 # Emerge estate — orientation
 
+## 2026-10-15 update (read first)
+
+The GCP demo box is gone; everything runs on the Hostinger VPS `editone-prod` (see
+`box-ops`). Deployment now goes through Jenkins at https://devops.tryemerge.in: a push to
+the deploy branch (main, or master for lms-grasp, lms-lesson-planner and
+lms-paper-setter-school) runs the repo's `Jenkinsfile` (one `emergeDeploy(...)` call from
+the shared library in `Harbour-Emerge/emerge-devops`), gates on tests, then runs the
+repo's own `deploy.sh` on the box. PRs get tests only. Repos on Jenkins: emerge-devops,
+CAS, Survey-Forms, lms-retrieval-engine, marketplace-processor, lms-grasp,
+lms-lesson-planner, lms-paper-setter-school, lms-lab-engine, lms-board, lms-mind-map,
+lms-flashcard-engine, lms-slide-builder, AnswerSheet-Checker, emerge-core,
+lms-paper-orchestrator (Exam Studio). Pending: Internal-Admin-Console (PR open) and
+emerge-mail (repo just created). Not on Jenkins by choice: emerge-frontend and
+landing-page-emerge (Vercel via GitHub Actions), Marketplace (outside the org),
+cleverclass.ai. Retired: lms-tutor, CAS-Admin. The deployment table below is historical.
+
 Which repo to open, what it actually is, and what you have been told about it
 that is no longer true.
 
@@ -43,6 +59,24 @@ Read the repo's own file before editing it. This table only routes you.
 |---|---|---|
 | `D:\Emerge-Design` | The Emerge design system **and** the landing page. A generator — see below. | Plain ES modules, `node build.mjs`; landing built by `python landing/v2/build.py`. No `package.json`. No git remote. |
 | `D:\Survey-Forms` | `emerge-forms` — the anonymous survey platform. Deploys to `survey.tryemerge.in`. | Go modular monolith + PostgreSQL + Next.js 16 |
+
+### The platform — added 2026-09-08, previously missing from this file
+
+These four are the core of Emerge proper and this document omitted them
+entirely. **Do not read that earlier silence as absence.**
+
+| Path | What it is | Stack |
+|---|---|---|
+| `D:\CAS` | Identity + authorization for every Mentis service. A **sidecar, never a gateway**: a service posts its token plus the user's to `POST /v1/policies` and gets entities *plus boolean expressions* to apply to its own rows. Domain-agnostic and must stay so. | Go, chi, pgx (no ORM), RS256+JWKS, gRPC, argon2id. No CI. |
+| `D:\emerge-core` | The Emerge backend: schools, people, students, staff, teachers, guardians. **One database per school** + a control plane; `X-School-Id` selects it. | Go, Ent ORM, chi, PostgreSQL |
+| `D:\Internal-Admin-Console` | `mentis-console` — one admin for every Mentis service. Runs at `admin.auth.tryemerge.in` and `admin.auth-demo.tryemerge.in`. | Next.js App Router, TS |
+| `D:\CAS-Admin` | **Archived.** Superseded by Internal-Admin-Console, which took over the same two URLs and ports. | Next.js 14, MUI v6 |
+
+CAS's `docs/*.md` is the reliable half of that repo — unusually for this estate.
+**Discard any CAS `CLAUDE.md` dated before 2026-09-03**: the earlier set
+described a `/v1/authorize` endpoint, `X-CAS-*` headers, ForwardAuth and a DNF
+solver, none of which exist. Full detail on all four, with `file:line`, is in
+`ultra-plan/references/estate-truth.md`.
 
 ### Exam Studio
 
