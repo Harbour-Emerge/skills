@@ -220,7 +220,7 @@ production; `/health/providers` exists specifically to catch it
 (`api.py:34-49`).
 
 ```bash
-curl -fsS 'http://127.0.0.1:8060/health/providers?strict=true'
+curl -fsS 'http://127.0.0.1:8061/health/providers?strict=true'
 ```
 
 `strict=true` answers **503 instead of 200** when degraded (`api.py:437-471`),

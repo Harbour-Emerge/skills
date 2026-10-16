@@ -144,8 +144,8 @@ This is the highest-value part of the document. A trap qualifies if it
 **fails silently or misleads** — not merely "is complicated". Real examples from
 this ecosystem, as a calibration bar:
 
-- `df /` reports ~3 GB free on the demo box; Docker's data root is a different
-  99 GB disk. A space-related debugging session starts from a false reading.
+- Docker-published `0.0.0.0` ports on `editone-prod` bypass UFW, so a service
+  looks firewalled in `ufw status` while it is open to the internet.
 - Go tests **skip** silently when `TEST_DATABASE_URL` is unset, so CI goes green
   proving nothing. `ci.yml` asserts the skip message is absent — keep that check.
 - The retrieval engine falls back to a hashing embedder on a wrong HuggingFace

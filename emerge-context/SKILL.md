@@ -5,21 +5,17 @@ description: Orientation for the Emerge / Exam Studio / CleverClass estate on D:
 
 # Emerge estate — orientation
 
-## 2026-10-15 update (read first)
+## Servers and deploys (updated 2026-10-16, read first)
 
-The GCP demo box is gone; everything runs on the Hostinger VPS `editone-prod` (see
-`box-ops`). Deployment now goes through Jenkins at https://devops.tryemerge.in: a push to
-the deploy branch (main, or master for lms-grasp, lms-lesson-planner and
-lms-paper-setter-school) runs the repo's `Jenkinsfile` (one `emergeDeploy(...)` call from
-the shared library in `Harbour-Emerge/emerge-devops`), gates on tests, then runs the
-repo's own `deploy.sh` on the box. PRs get tests only. Repos on Jenkins: emerge-devops,
-CAS, Survey-Forms, lms-retrieval-engine, marketplace-processor, lms-grasp,
-lms-lesson-planner, lms-paper-setter-school, lms-lab-engine, lms-board, lms-mind-map,
-lms-flashcard-engine, lms-slide-builder, AnswerSheet-Checker, emerge-core,
-lms-paper-orchestrator (Exam Studio). Pending: Internal-Admin-Console (PR open) and
-emerge-mail (repo just created). Not on Jenkins by choice: emerge-frontend and
-landing-page-emerge (Vercel via GitHub Actions), Marketplace (outside the org),
-cleverclass.ai. Retired: lms-tutor, CAS-Admin. The deployment table below is historical.
+The GCP demo box `lms` is decommissioned. Everything runs on one Hostinger VPS,
+`editone-prod`, which is the **demo environment**, not production, despite its name.
+SSH and scp access to it is allowed. See `box-ops` for the server and
+`emerge-deploy` for how each repo ships: most deploy through Jenkins at
+https://devops.tryemerge.in on merge; the Marketplace API, Meet, poll, companion,
+debate, timeline and the Vercel storefronts are deployed by hand. Retired: lms-tutor,
+CAS-Admin, Exam Studio (its pgvector container stays up for retrieval), and the
+archived `paper-setter` and `paper-setter-module` repos (`lms-paper-setter-school`
+is the live paper setter).
 
 Which repo to open, what it actually is, and what you have been told about it
 that is no longer true.
@@ -34,7 +30,7 @@ Shipping procedure lives in **`emerge-deploy`**. This file is the map only.
 
 ## The products
 
-Three unrelated products share this drive and, partly, one demo box.
+Three unrelated products share this drive and one server.
 
 **Emerge** — an AI-native academic operating system: student portal, faculty
 portal, and an AI companion called Jerry. A joint venture of Harbour Tech and
@@ -186,18 +182,14 @@ route around it.
 |---|---|---|
 | `www.tryemerge.in` | Vercel project `emerge-landing`, team `saturnalia` | built from `Emerge-Design/landing/v2` |
 | `emerge-student-portal.vercel.app` | Vercel project `emerge-student-portal` | |
-| `survey.tryemerge.in` | demo box `lms` — 3 containers behind Caddy, plus an opt-in local Postgres | `Survey-Forms/deploy/` |
-| Exam Studio | demo box, `exam-studio-*` containers | |
-| CleverClass | demo box, `cc-web` / `cc-api` / `cc-proxy`, ports 8050 (storefront) and 8051 (admin) | `cleverclass.ai/deploy/`, from `/opt/cleverclass` |
-| `phd-monitoring` | `phdportal.thapar.edu` via a **Jenkins** job triggered by `.github/workflows/main.yml` | not on the demo box |
+| `survey.tryemerge.in` | `editone-prod`, `emerge-forms-*` behind host nginx, database in `emerge-db` | Jenkins on merge |
+| Emerge services (CAS, console, core, mail, retrieval, Marketplace, Meet, plugin engines) | `editone-prod`, `/opt/emerge/<name>` | Jenkins on merge, or by hand (see `emerge-deploy`) |
+| Exam Studio | retired; nginx, orchestrator and questionbank stopped | |
+| CleverClass | `editone-prod`, Docker Swarm stack `editone` from `/opt/editone`, ports 8050 and 18000 | by hand |
+| `phd-monitoring` | `phdportal.thapar.edu` via a Thapar **Jenkins** job | not on `editone-prod` |
 
 `phd-monitoring` deploys nowhere near the other products. Do not reason about it
-from the demo box.
-
-There is also an `editone-prod` host in `~/.ssh/config` (Hostinger VPS,
-`srv1888767.hstgr.cloud`) described as CleverClass/EditOne production — but
-**no repo on `D:\` references it at all**. Its role is genuinely unknown; ask
-before deploying anything to it. See `box-ops`.
+from `editone-prod`.
 
 ## Landmines worth knowing before you start
 
@@ -269,15 +261,9 @@ days old and wrong in these specific places. Prefer this file:
    and states nothing in the bundle had ever been built or run. **Re-verify that
    status before relying on it** — it was written during an outage and the box
    has been back since.
-7. **443 is not open at the firewall.** `EMERGE_SETUP.md` §3.3 says it is;
-   `Survey-Forms/deploy/Caddyfile:24-26` records the opposite, verified by
-   probing from outside. The stack currently serves **plain HTTP on 8070**, and
-   `survey.tryemerge.in` is the target state, not the current one. See
-   `emerge-deploy` for the four things a switch to HTTPS requires.
-8. **Exam Studio has no CI deploy path.** Its bundle lives in
-   `lms-paper-orchestrator/deploy/` and is run by hand. The `deploy.yml` in
-   `lms-retrieval-engine` and `lms-tutor` targets the *older* LMS stack via
-   `/opt/lms/lms-deploy/deploy.sh`, a script tracked by no repo.
+7. **The 443 and Exam Studio CI notes no longer apply.** Both described the
+   decommissioned GCP box. On `editone-prod`, host nginx terminates TLS for every
+   `*.tryemerge.in` name, and deploys run through Jenkins (see `emerge-deploy`).
 
 ### Repo docs that still need fixing
 
@@ -300,4 +286,4 @@ and date the correction.
   password, IP encryption key, admin bootstrap password and SMTP app password.
   CI deliberately does not inject them; the file living on the box is the point.
 - Test emails go to `akarshagri121@` and `masterreyan@` only.
-- The demo box has four tenants. Do not touch what you did not create — `box-ops`.
+- `editone-prod` is shared with tenant `ajeet`. Never touch their services — `box-ops`.
